@@ -15,11 +15,12 @@ class MyApp extends StatelessWidget {
       body: RadialView(
         anchor: RadialMenuAnchor.bottomCenter,
         radius: 200,
-        angularPadding: 10,
+        angularPadding: 1,
         delegate: SliverChildBuilderDelegate(
           (context, index) => CircleAvatar(
             radius: 10,
             backgroundColor: Colors.primaries[index % Colors.primaries.length],
+            child: Center(child: Text('$index')),
           ),
           childCount: 20,
         ),

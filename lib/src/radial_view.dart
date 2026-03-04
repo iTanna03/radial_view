@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:radial_view/src/extensions.dart';
 import 'package:radial_view/src/radial_menu_anchor.dart';
 import 'package:radial_view/src/sliver_radial_list.dart';
 
@@ -18,6 +19,8 @@ class RadialView extends StatelessWidget {
   final RadialMenuAnchor anchor;
   final double radius;
   final SliverChildDelegate delegate;
+
+  /// Angle in degrees
   final double angularPadding;
   final int visibleItemCount;
   final RadialAngle _radialAngle;
@@ -25,7 +28,7 @@ class RadialView extends StatelessWidget {
   Size _getBoundingBoxSize() {
     final angle = _radialAngle.visibleArcAngle;
     final angleArcPerChild = angle / visibleItemCount;
-    final childSize = _radialToLinear(angleArcPerChild);
+    final childSize = this.radius * angleArcPerChild;
 
     final radius = this.radius + childSize / 2;
 
@@ -57,10 +60,6 @@ class RadialView extends StatelessWidget {
     }
   }
 
-  double _radialToLinear(double radians) {
-    return radius * radians;
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = _getBoundingBoxSize();
@@ -84,7 +83,7 @@ class RadialView extends StatelessWidget {
                   radius: radius,
                   anchor: anchor,
                   visibleItemCount: visibleItemCount,
-                  angularPadding: angularPadding,
+                  angularPadding: angularPadding.toRadians,
                 ),
               ],
             ),
