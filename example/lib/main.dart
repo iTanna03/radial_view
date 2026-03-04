@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text('Radial View')),
       body: RadialView(
-        anchor: RadialMenuAnchor.bottomCenter,
+        anchor: RadialMenuAnchor.centerLeft,
         radius: 200,
         angularPadding: 1,
         delegate: SliverChildBuilderDelegate(
@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
             backgroundColor: Colors.primaries[index % Colors.primaries.length],
             child: Center(child: Text('$index')),
           ),
-          childCount: 20,
+          childCount: 200,
         ),
         visibleItemCount: 10,
       ),

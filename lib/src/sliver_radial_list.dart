@@ -257,17 +257,13 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     // as empty space and is actually visible between items.
     final anglePerChildContent = angleArcPerChild - angularPadding;
 
-    // The pixel length of all visible items laid end-to-end along the arc.
-    // This represents the "size" of the visible window in scroll-space pixels.
-    final paintExtent = _radialToLinear(angleArcPerChild) * _visibleItemCount;
-
     // ── Step 2: Scroll extents ──────────────────────────────────────────────
     //
     // Total angle the list spans if every item were shown.
     final scrollableAngle = (angleArcPerChild * length);
 
     // Convert that total angle to pixels → this is the max scroll position.
-    final maxScrollExtent = _radialToLinear(scrollableAngle);
+    final maxScrollExtent = _radialToLinear(scrollableAngle - visibleAngle);
 
     // ── Step 3: Child size ──────────────────────────────────────────────────
     //
@@ -443,16 +439,45 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
 
     // ── Step 9: Report geometry to the viewport ─────────────────────────────
     //
-    //   scrollExtent              – total pixels the content can scroll through
-    //   paintExtent               – how many pixels this sliver actually paints
-    //                               (fills the entire viewport main axis)
-    //   maxPaintExtent            – maximum possible paint extent (arc length)
-    //   crossAxisExtent           – width (for vertical scroll) or height
+    // The sliver itself is functionally a fixed-size block that spins
+    // internally when scrolled. So we give it a fixed physical "footprint"
+    // on the screen equal to the viewport's height (or crossAxisExtent).
+    final double physicalSize = constraints.viewportMainAxisExtent;
+
+    // The amount of extra internal "travel" the wheel needs to show the
+    // last item. We calculated this earlier as `maxScrollExtent`.
+    // e.g. if the user needs to scroll 200 pixels to reach the end.
+    final double internalScroll = maxScrollExtent;
+
+    // The total length of this sliver in scroll space is its physical footprint
+    // PLUS the internal scroll travel.
+    // Why? Because the Viewport will calculate its `maxScrollExtent` as:
+    //   ViewportMaxScroll = sliver.scrollExtent - viewportExtent
+    // So:
+    //   ViewportMaxScroll = (physicalSize + internalScroll) - physicalSize
+    //   ViewportMaxScroll = internalScroll
+    // This gives exactly the correct number of scrollable pixels!
+    final double totalScrollExtent = physicalSize + internalScroll;
+
+    // Calculate how much of the sliver's physical footprint is still
+    // overlapping the current viewport. (e.g. if we scroll past internalScroll,
+    // the sliver itself starts moving off-screen).
+    final double layoutExtent = (totalScrollExtent - constraints.scrollOffset)
+        .clamp(0.0, double.infinity);
+
+    // The actual painted pixels, clamped to what space is remaining on screen.
+    final double paintExtent = layoutExtent.clamp(
+      0.0,
+      constraints.remainingPaintExtent,
+    );
+
     geometry = SliverGeometry(
-      scrollExtent: maxScrollExtent,
-      paintExtent: constraints.viewportMainAxisExtent,
-      maxPaintExtent: paintExtent,
+      scrollExtent: totalScrollExtent,
+      paintExtent: paintExtent,
+      maxPaintExtent: physicalSize,
       crossAxisExtent: constraints.crossAxisExtent,
+      hasVisualOverflow:
+          true, // Content always overflows a spinning wheel visually
     );
 
     childManager.didFinishLayout();
