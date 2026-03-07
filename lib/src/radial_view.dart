@@ -12,10 +12,15 @@ class RadialView extends StatelessWidget {
     required this.radius,
     required List<Widget> children,
     this.itemExtent,
+    this.maxVisibleItems,
     this.rotateChildren = true,
     this.angularPadding = 0.0,
     super.key,
-  }) : delegate = SliverChildListDelegate(children),
+  }) : assert(
+         (itemExtent == null) != (maxVisibleItems == null),
+         'Either itemExtent or maxVisibleItems must be provided, but not both.',
+       ),
+       delegate = SliverChildListDelegate(children),
        _radialAngle = RadialMenuAnchorWrapper.getAngle(anchor);
 
   RadialView.builder({
@@ -24,10 +29,15 @@ class RadialView extends StatelessWidget {
     required IndexedWidgetBuilder itemBuilder,
     required int itemCount,
     this.itemExtent,
+    this.maxVisibleItems,
     this.rotateChildren = true,
     this.angularPadding = 0.0,
     super.key,
-  }) : delegate = SliverChildBuilderDelegate(
+  }) : assert(
+         (itemExtent == null) != (maxVisibleItems == null),
+         'Either itemExtent or maxVisibleItems must be provided, but not both.',
+       ),
+       delegate = SliverChildBuilderDelegate(
          itemBuilder,
          childCount: itemCount,
        ),
@@ -40,6 +50,9 @@ class RadialView extends StatelessWidget {
   /// Distance in pixels a child occupies along the circumference
   final double? itemExtent;
 
+  /// The maximum number of items visible along the given sweep angle
+  final int? maxVisibleItems;
+
   /// Whether children should rotate outwards from center
   final bool rotateChildren;
 
@@ -48,8 +61,8 @@ class RadialView extends StatelessWidget {
   final RadialAngle _radialAngle;
 
   Size _getBoundingBoxSize() {
-    final angle = _radialAngle.visibleArcAngle;
-    final childSize = itemExtent ?? (this.radius / 2.0);
+    final angle = _radialAngle.sweepAngle.abs();
+    final childSize = itemExtent ?? (this.radius * (angle / maxVisibleItems!));
 
     final radius = this.radius + childSize / 2;
 
@@ -102,6 +115,7 @@ class RadialView extends StatelessWidget {
                   radius: radius,
                   anchor: anchor,
                   itemExtent: itemExtent,
+                  maxVisibleItems: maxVisibleItems,
                   rotateChildren: rotateChildren,
                   angularPadding: angularPadding.toRadians,
                 ),

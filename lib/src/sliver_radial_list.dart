@@ -44,13 +44,18 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
     required this.radius,
     required this.anchor,
     this.itemExtent,
+    this.maxVisibleItems,
     this.rotateChildren = true,
     this.angularPadding = 0.0,
-  });
+  }) : assert(
+         (itemExtent == null) != (maxVisibleItems == null),
+         'Either itemExtent or maxVisibleItems must be provided.',
+       );
 
   final double radius;
   final RadialMenuAnchor anchor;
   final double? itemExtent;
+  final int? maxVisibleItems;
   final bool rotateChildren;
   final double angularPadding;
 
@@ -65,6 +70,7 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
       radius: radius,
       anchor: anchor,
       itemExtent: itemExtent,
+      maxVisibleItems: maxVisibleItems,
       rotateChildren: rotateChildren,
       angularPadding: angularPadding,
     );
@@ -79,6 +85,7 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
       ..radius = radius
       ..anchor = anchor
       ..itemExtent = itemExtent
+      ..maxVisibleItems = maxVisibleItems
       ..rotateChildren = rotateChildren
       ..angularPadding = angularPadding;
   }
@@ -99,11 +106,13 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     required double radius,
     required RadialMenuAnchor anchor,
     required double? itemExtent,
+    required int? maxVisibleItems,
     required bool rotateChildren,
     required double angularPadding,
   }) : _radius = radius,
        _anchor = anchor,
        _itemExtent = itemExtent,
+       _maxVisibleItems = maxVisibleItems,
        _rotateChildren = rotateChildren,
        _angularPadding = angularPadding;
 
@@ -138,7 +147,16 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
   set itemExtent(double? value) {
     if (_itemExtent == value) return;
     _itemExtent = value;
-    _cachedCachedItemExtent = null;
+    markNeedsLayout();
+  }
+
+  int? _maxVisibleItems;
+
+  int? get maxVisibleItems => _maxVisibleItems;
+
+  set maxVisibleItems(int? value) {
+    if (_maxVisibleItems == value) return;
+    _maxVisibleItems = value;
     markNeedsLayout();
   }
 
@@ -151,8 +169,6 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     _rotateChildren = value;
     markNeedsPaint();
   }
-
-  double? _cachedCachedItemExtent;
 
   // ── angularPadding ────────────────────────────────────────────────────────
   // Extra radians added to each child's angular slot. Think of it like
@@ -214,41 +230,19 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     final radialAngle = RadialMenuAnchorWrapper.getAngle(_anchor);
     final visibleAngle = radialAngle.sweepAngle.abs();
 
-    double resolvedItemExtent = _itemExtent ?? _cachedCachedItemExtent ?? 0.0;
+    // The angle occupied by the child's visible content only (slot minus padding).
+    // This is what drives the child widget's pixel size so the padding gap remains
+    // as empty space and is actually visible between items.
+    late final double anglePerChildContent;
 
-    // If we don't know the item extent yet, we MUST measure the first child!
-    if (_itemExtent == null && _cachedCachedItemExtent == null) {
-      if (length == 0) {
-        geometry = SliverGeometry.zero;
-        childManager.didFinishLayout();
-        return;
-      }
-
-      RenderBox? child;
-      if (firstChild != null && indexOf(firstChild!) == 0) {
-        child = firstChild;
-      } else {
-        if (firstChild == null) {
-          if (!addInitialChild(index: 0)) {
-            geometry = SliverGeometry.zero;
-            childManager.didFinishLayout();
-            return;
-          }
-        }
-        child = firstChild;
-        while (child != null && indexOf(child) > 0) {
-          child = insertAndLayoutLeadingChild(
-            const BoxConstraints(),
-            parentUsesSize: true,
-          );
-        }
-      }
-      child!.layout(const BoxConstraints(), parentUsesSize: true);
-      resolvedItemExtent = max(child.size.width, child.size.height);
-      _cachedCachedItemExtent = resolvedItemExtent;
+    if (_itemExtent != null) {
+      anglePerChildContent = _linearToRadial(_itemExtent!);
+    } else {
+      // It derives from maxVisibleItems
+      final totalPadding = _maxVisibleItems! * angularPadding;
+      anglePerChildContent = (visibleAngle - totalPadding) / _maxVisibleItems!;
     }
 
-    final anglePerChildContent = _linearToRadial(resolvedItemExtent);
     final angleArcPerChild = anglePerChildContent + angularPadding;
 
     // ── Step 2: Scroll extents ──────────────────────────────────────────────
@@ -258,7 +252,10 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     );
 
     // ── Step 3: Child size ──────────────────────────────────────────────────
-    final childDimension = resolvedItemExtent;
+    final childDimension = _radialToLinear(
+      anglePerChildContent,
+    ).clamp(0.0, double.maxFinite);
+    assert(childDimension > 0, 'childDimension must be positive');
     final childConstraints = BoxConstraints.tight(
       Size(childDimension, childDimension),
     );

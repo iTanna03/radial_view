@@ -7,7 +7,7 @@ enum RadialMenuAnchor {
   topCenter,
   topRight,
   centerLeft,
-  center,
+  //center,
   centerRight,
   bottomLeft,
   bottomCenter,
@@ -36,10 +36,10 @@ class RadialMenuAnchorWrapper {
       endAngle: _halfPi,
       orientation: RadialSweepOrientation.vertical,
     ),
-    RadialMenuAnchor.center: RadialAngle(
-      startAngle: _minusHalfPi,
-      endAngle: _threeQuarterPi,
-    ),
+    // RadialMenuAnchor.center: RadialAngle(
+    //   startAngle: _minusHalfPi,
+    //   endAngle: _threeQuarterPi,
+    // ),
     RadialMenuAnchor.centerRight: RadialAngle(
       startAngle: _threeQuarterPi,
       endAngle: _halfPi,
@@ -66,7 +66,7 @@ class RadialMenuAnchorWrapper {
       RadialMenuAnchor.topCenter => Alignment.topCenter,
       RadialMenuAnchor.topRight => Alignment.topRight,
       RadialMenuAnchor.centerLeft => Alignment.centerLeft,
-      RadialMenuAnchor.center => Alignment.center,
+      //RadialMenuAnchor.center => Alignment.center,
       RadialMenuAnchor.centerRight => Alignment.centerRight,
       RadialMenuAnchor.bottomLeft => Alignment.bottomLeft,
       RadialMenuAnchor.bottomCenter => Alignment.bottomCenter,

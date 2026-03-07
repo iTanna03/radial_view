@@ -10,21 +10,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final anchor = RadialMenuAnchor.bottomCenter;
+    final anchor = RadialMenuAnchor.centerLeft;
 
     return Scaffold(
       appBar: AppBar(title: Text('Radial View')),
       body: RadialView.builder(
         anchor: anchor,
         radius: 180,
-        angularPadding: 0,
-        itemExtent: 60,
-        itemCount: 20,
+        angularPadding: 10,
+        maxVisibleItems: 8,
+        itemCount: 100,
         itemBuilder: (context, index) => DecoratedBox(
-          decoration: ShapeDecoration(
-            color: Colors.black,
-            shape: CircleBorder(),
-          ),
+          decoration: ShapeDecoration(color: Colors.red, shape: StarBorder()),
         ),
       ),
     );
