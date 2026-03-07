@@ -10,25 +10,46 @@ class RadialView extends StatelessWidget {
   RadialView({
     required this.anchor,
     required this.radius,
-    required this.delegate,
-    required this.visibleItemCount,
+    required List<Widget> children,
+    this.itemExtent,
+    this.rotateChildren = true,
     this.angularPadding = 0.0,
     super.key,
-  }) : _radialAngle = RadialMenuAnchorWrapper.getAngle(anchor);
+  }) : delegate = SliverChildListDelegate(children),
+       _radialAngle = RadialMenuAnchorWrapper.getAngle(anchor);
+
+  RadialView.builder({
+    required this.anchor,
+    required this.radius,
+    required IndexedWidgetBuilder itemBuilder,
+    required int itemCount,
+    this.itemExtent,
+    this.rotateChildren = true,
+    this.angularPadding = 0.0,
+    super.key,
+  }) : delegate = SliverChildBuilderDelegate(
+         itemBuilder,
+         childCount: itemCount,
+       ),
+       _radialAngle = RadialMenuAnchorWrapper.getAngle(anchor);
 
   final RadialMenuAnchor anchor;
   final double radius;
   final SliverChildDelegate delegate;
 
+  /// Distance in pixels a child occupies along the circumference
+  final double? itemExtent;
+
+  /// Whether children should rotate outwards from center
+  final bool rotateChildren;
+
   /// Angle in degrees
   final double angularPadding;
-  final int visibleItemCount;
   final RadialAngle _radialAngle;
 
   Size _getBoundingBoxSize() {
     final angle = _radialAngle.visibleArcAngle;
-    final angleArcPerChild = angle / visibleItemCount;
-    final childSize = this.radius * angleArcPerChild;
+    final childSize = itemExtent ?? (this.radius / 2.0);
 
     final radius = this.radius + childSize / 2;
 
@@ -80,7 +101,8 @@ class RadialView extends StatelessWidget {
                   delegate: delegate,
                   radius: radius,
                   anchor: anchor,
-                  visibleItemCount: visibleItemCount,
+                  itemExtent: itemExtent,
+                  rotateChildren: rotateChildren,
                   angularPadding: angularPadding.toRadians,
                 ),
               ],

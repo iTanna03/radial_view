@@ -10,21 +10,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final anchor = RadialMenuAnchor.bottomCenter;
+
     return Scaffold(
       appBar: AppBar(title: Text('Radial View')),
-      body: RadialView(
-        anchor: RadialMenuAnchor.center,
-        radius: 200,
+      body: RadialView.builder(
+        anchor: anchor,
+        radius: 180,
         angularPadding: 0,
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => CircleAvatar(
-            radius: 10,
-            backgroundColor: Colors.primaries[index % Colors.primaries.length],
-            child: Center(child: Text('$index')),
+        itemExtent: 60,
+        itemCount: 20,
+        itemBuilder: (context, index) => DecoratedBox(
+          decoration: ShapeDecoration(
+            color: Colors.black,
+            shape: CircleBorder(),
           ),
-          childCount: 20,
         ),
-        visibleItemCount: 10,
       ),
     );
   }

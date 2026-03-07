@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:radial_view/src/radial_menu_anchor.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 // ---------------------------------------------------------------------------
 // MENTAL MODEL
@@ -39,29 +40,18 @@ import 'package:radial_view/src/radial_menu_anchor.dart';
 class SliverRadialList extends SliverMultiBoxAdaptorWidget {
   const SliverRadialList({
     super.key,
-
-    // delegate builds children lazily, e.g. SliverChildBuilderDelegate.
     required super.delegate,
-
-    // Distance (in logical pixels) from the anchor center to each child's
-    // midpoint along the circumference.
     required this.radius,
-
-    // Which edge / corner the circle is anchored to and how much arc is shown.
     required this.anchor,
-
-    // How many items are visible across the visible arc at once.
-    // Defaults to all items when null (or when anchor == center).
-    this.visibleItemCount,
-
-    // Extra angle (radians) added to each child's slot to spread them apart.
-    // Positive values create gaps; 0.0 packs them edge-to-edge.
+    this.itemExtent,
+    this.rotateChildren = true,
     this.angularPadding = 0.0,
   });
 
   final double radius;
   final RadialMenuAnchor anchor;
-  final int? visibleItemCount;
+  final double? itemExtent;
+  final bool rotateChildren;
   final double angularPadding;
 
   @override
@@ -74,14 +64,12 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
       childManager: context as SliverMultiBoxAdaptorElement,
       radius: radius,
       anchor: anchor,
-      visibleItemCount: visibleItemCount,
+      itemExtent: itemExtent,
+      rotateChildren: rotateChildren,
       angularPadding: angularPadding,
     );
   }
 
-  // updateRenderObject() is called on every subsequent widget rebuild.
-  // Without this override, changing radius/anchor/visibleItemCount/angularPadding
-  // on a live widget would have NO effect on the render object.
   @override
   void updateRenderObject(
     BuildContext context,
@@ -90,9 +78,8 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
     renderObject
       ..radius = radius
       ..anchor = anchor
-      // Use setVisibleItemCount() instead of the int setter to keep
-      // childManager access inside the render object (it's a protected member).
-      ..setVisibleItemCount(visibleItemCount)
+      ..itemExtent = itemExtent
+      ..rotateChildren = rotateChildren
       ..angularPadding = angularPadding;
   }
 }
@@ -111,25 +98,15 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     required super.childManager,
     required double radius,
     required RadialMenuAnchor anchor,
-    required int? visibleItemCount,
+    required double? itemExtent,
+    required bool rotateChildren,
     required double angularPadding,
-  }) : assert(
-         // visibleItemCount must not exceed the total number of children.
-         visibleItemCount == null ||
-             visibleItemCount <= childManager.childCount,
-       ),
-       _radius = radius,
+  }) : _radius = radius,
        _anchor = anchor,
-       // When anchor == center the full 360° arc is used, so every child is
-       // always visible and visibleItemCount must equal childCount.
-       _visibleItemCount = anchor == RadialMenuAnchor.center
-           ? childManager.childCount
-           : visibleItemCount ?? childManager.childCount,
+       _itemExtent = itemExtent,
+       _rotateChildren = rotateChildren,
        _angularPadding = angularPadding;
 
-  // ── radius ────────────────────────────────────────────────────────────────
-  // Controls how far children sit from the anchor center.
-  // Changing this triggers a full re-layout.
   double _radius;
 
   double get radius => _radius;
@@ -151,41 +128,31 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
   set anchor(RadialMenuAnchor value) {
     if (anchor == value) return;
     _anchor = value;
-    // Force all children visible when anchored to center.
-    _visibleItemCount = _anchor == RadialMenuAnchor.center
-        ? childManager.childCount
-        : visibleItemCount;
     markNeedsLayout();
   }
 
-  // ── visibleItemCount ──────────────────────────────────────────────────────
-  // The number of children that fit across the visible arc simultaneously.
-  // The arc angle allocated per child = visibleAngle / visibleItemCount.
-  // For center anchors this is always childCount (all items fit in 360°).
-  int _visibleItemCount;
+  double? _itemExtent;
 
-  int get visibleItemCount => _visibleItemCount;
+  double? get itemExtent => _itemExtent;
 
-  set visibleItemCount(int value) {
-    if (visibleItemCount == value) return;
-    // Center anchor always overrides to show all children.
-    _visibleItemCount = anchor == RadialMenuAnchor.center
-        ? childManager.childCount
-        : value;
+  set itemExtent(double? value) {
+    if (_itemExtent == value) return;
+    _itemExtent = value;
+    _cachedCachedItemExtent = null;
     markNeedsLayout();
   }
 
-  // Nullable variant used by updateRenderObject in SliverRadialList.
-  // Passing null means "use all children" (same as the constructor default).
-  // This keeps childManager access inside the render object where it belongs.
-  void setVisibleItemCount(int? value) {
-    final resolved = anchor == RadialMenuAnchor.center || value == null
-        ? childManager.childCount
-        : value;
-    if (_visibleItemCount == resolved) return;
-    _visibleItemCount = resolved;
-    markNeedsLayout();
+  bool _rotateChildren;
+
+  bool get rotateChildren => _rotateChildren;
+
+  set rotateChildren(bool value) {
+    if (_rotateChildren == value) return;
+    _rotateChildren = value;
+    markNeedsPaint();
   }
+
+  double? _cachedCachedItemExtent;
 
   // ── angularPadding ────────────────────────────────────────────────────────
   // Extra radians added to each child's angular slot. Think of it like
@@ -245,32 +212,53 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     //   • visibleAngle – how wide the visible arc is (in radians).
     //                    e.g. center → 2π, corner → π/2.
     final radialAngle = RadialMenuAnchorWrapper.getAngle(_anchor);
-    final visibleAngle = radialAngle.visibleArcAngle;
+    final visibleAngle = radialAngle.sweepAngle.abs();
 
-    // Total angle allocated to each child's SLOT (content + padding on both sides).
-    // angularPadding is the gap between adjacent items expressed in radians.
-    final angleArcPerChild =
-        (visibleAngle / _visibleItemCount) + angularPadding;
+    double resolvedItemExtent = _itemExtent ?? _cachedCachedItemExtent ?? 0.0;
 
-    // The angle occupied by the child's visible content only (slot minus padding).
-    // This is what drives the child widget's pixel size so the padding gap remains
-    // as empty space and is actually visible between items.
-    final anglePerChildContent = angleArcPerChild - angularPadding;
+    // If we don't know the item extent yet, we MUST measure the first child!
+    if (_itemExtent == null && _cachedCachedItemExtent == null) {
+      if (length == 0) {
+        geometry = SliverGeometry.zero;
+        childManager.didFinishLayout();
+        return;
+      }
+
+      RenderBox? child;
+      if (firstChild != null && indexOf(firstChild!) == 0) {
+        child = firstChild;
+      } else {
+        if (firstChild == null) {
+          if (!addInitialChild(index: 0)) {
+            geometry = SliverGeometry.zero;
+            childManager.didFinishLayout();
+            return;
+          }
+        }
+        child = firstChild;
+        while (child != null && indexOf(child) > 0) {
+          child = insertAndLayoutLeadingChild(
+            const BoxConstraints(),
+            parentUsesSize: true,
+          );
+        }
+      }
+      child!.layout(const BoxConstraints(), parentUsesSize: true);
+      resolvedItemExtent = max(child.size.width, child.size.height);
+      _cachedCachedItemExtent = resolvedItemExtent;
+    }
+
+    final anglePerChildContent = _linearToRadial(resolvedItemExtent);
+    final angleArcPerChild = anglePerChildContent + angularPadding;
 
     // ── Step 2: Scroll extents ──────────────────────────────────────────────
-    //
-    // Total angle the list spans if every item were shown.
     final scrollableAngle = (angleArcPerChild * length);
-
-    // Convert that total angle to pixels → this is the max scroll position.
-    final maxScrollExtent = _radialToLinear(scrollableAngle - visibleAngle);
+    final maxScrollExtent = _radialToLinear(
+      (scrollableAngle - visibleAngle).clamp(0.0, double.infinity),
+    );
 
     // ── Step 3: Child size ──────────────────────────────────────────────────
-    //
-    // Each child is a square sized to its CONTENT angle (not the full slot).
-    // Using the full slot angle here would cause the child to grow and visually
-    // swallow the padding gap, making angularPadding have no visible effect.
-    final childDimension = _radialToLinear(anglePerChildContent);
+    final childDimension = resolvedItemExtent;
     final childConstraints = BoxConstraints.tight(
       Size(childDimension, childDimension),
     );
@@ -551,8 +539,21 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
         final dx = center.dx + (_radius * cos(angle)) - childSize;
         final dy = center.dy + (_radius * sin(angle)) - childSize;
 
-        context.paintChild(child, Offset(dx, dy));
+        if (rotateChildren) {
+          final transform = Matrix4.identity()
+            ..translateByVector3(Vector3(dx + childSize, dy + childSize, 0))
+            ..rotateZ(angle)
+            ..translateByVector3(Vector3(-childSize, -childSize, 0));
 
+          context.pushTransform(needsCompositing, offset, transform, (
+            context,
+            offset,
+          ) {
+            context.paintChild(child!, Offset.zero);
+          });
+        } else {
+          context.paintChild(child, Offset(dx, dy));
+        }
         // Walk the intrinsic linked list of live children.
         child = childParentData.nextSibling;
       }
