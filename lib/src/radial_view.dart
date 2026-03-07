@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:radial_view/src/extensions.dart';
@@ -11,14 +10,14 @@ class RadialView extends StatelessWidget {
     required this.anchor,
     required this.radius,
     required List<Widget> children,
-    this.itemExtent,
+    this.childSize,
     this.maxVisibleItems,
     this.rotateChildren = true,
     this.angularPadding = 0.0,
     super.key,
   }) : assert(
-         (itemExtent == null) != (maxVisibleItems == null),
-         'Either itemExtent or maxVisibleItems must be provided, but not both.',
+         (childSize == null) != (maxVisibleItems == null),
+         'Either childSize or maxVisibleItems must be provided, but not both.',
        ),
        delegate = SliverChildListDelegate(children),
        _radialAngle = RadialMenuAnchorWrapper.getAngle(anchor);
@@ -28,14 +27,14 @@ class RadialView extends StatelessWidget {
     required this.radius,
     required IndexedWidgetBuilder itemBuilder,
     required int itemCount,
-    this.itemExtent,
+    this.childSize,
     this.maxVisibleItems,
     this.rotateChildren = true,
     this.angularPadding = 0.0,
     super.key,
   }) : assert(
-         (itemExtent == null) != (maxVisibleItems == null),
-         'Either itemExtent or maxVisibleItems must be provided, but not both.',
+         (childSize == null) != (maxVisibleItems == null),
+         'Either childSize or maxVisibleItems must be provided, but not both.',
        ),
        delegate = SliverChildBuilderDelegate(
          itemBuilder,
@@ -47,8 +46,8 @@ class RadialView extends StatelessWidget {
   final double radius;
   final SliverChildDelegate delegate;
 
-  /// Distance in pixels a child occupies along the circumference
-  final double? itemExtent;
+  /// The 2D bounds each child strictly occupies
+  final Size? childSize;
 
   /// The maximum number of items visible along the given sweep angle
   final int? maxVisibleItems;
@@ -62,23 +61,29 @@ class RadialView extends StatelessWidget {
 
   Size _getBoundingBoxSize() {
     final angle = _radialAngle.sweepAngle.abs();
-    final childSize = itemExtent ?? (this.radius * (angle / maxVisibleItems!));
 
-    final radius = this.radius + childSize / 2;
+    late final double largestChildSpan;
+    if (childSize != null) {
+      largestChildSpan = max(childSize!.width, childSize!.height);
+    } else {
+      largestChildSpan = this.radius * (angle / maxVisibleItems!);
+    }
+
+    final viewRadius = this.radius + largestChildSpan / 2;
 
     if (angle == pi / 2) {
-      return Size(radius, radius);
+      return Size(viewRadius, viewRadius);
     } else if (angle == pi * 2) {
-      return Size(2 * radius, 2 * radius);
+      return Size(2 * viewRadius, 2 * viewRadius);
     } else if (angle == pi) {
       assert(
         _radialAngle.orientation != null,
         'orientation is required when visibleArcAngle is 180 degree',
       );
       if (_radialAngle.orientation! == RadialSweepOrientation.horizontal) {
-        return Size(2 * radius, radius);
+        return Size(2 * viewRadius, viewRadius);
       } else {
-        return Size(radius, 2 * radius);
+        return Size(viewRadius, 2 * viewRadius);
       }
     } else {
       throw UnsupportedError('Invalid Visible Arc Angle: $angle');
@@ -103,24 +108,19 @@ class RadialView extends StatelessWidget {
         Positioned(
           width: size.width,
           height: size.height,
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(
-              dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse},
-            ),
-            child: CustomScrollView(
-              scrollDirection: _getScrollDirection(),
-              slivers: [
-                SliverRadialList(
-                  delegate: delegate,
-                  radius: radius,
-                  anchor: anchor,
-                  itemExtent: itemExtent,
-                  maxVisibleItems: maxVisibleItems,
-                  rotateChildren: rotateChildren,
-                  angularPadding: angularPadding.toRadians,
-                ),
-              ],
-            ),
+          child: CustomScrollView(
+            scrollDirection: _getScrollDirection(),
+            slivers: [
+              SliverRadialList(
+                delegate: delegate,
+                radius: radius,
+                anchor: anchor,
+                childSize: childSize,
+                maxVisibleItems: maxVisibleItems,
+                rotateChildren: rotateChildren,
+                angularPadding: angularPadding.toRadians,
+              ),
+            ],
           ),
         ),
       ],

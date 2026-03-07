@@ -43,18 +43,18 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
     required super.delegate,
     required this.radius,
     required this.anchor,
-    this.itemExtent,
+    this.childSize,
     this.maxVisibleItems,
     this.rotateChildren = true,
     this.angularPadding = 0.0,
   }) : assert(
-         (itemExtent == null) != (maxVisibleItems == null),
-         'Either itemExtent or maxVisibleItems must be provided.',
+         childSize != null || maxVisibleItems != null,
+         'At least one of childSize or maxVisibleItems must be provided.',
        );
 
   final double radius;
   final RadialMenuAnchor anchor;
-  final double? itemExtent;
+  final Size? childSize;
   final int? maxVisibleItems;
   final bool rotateChildren;
   final double angularPadding;
@@ -69,7 +69,7 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
       childManager: context as SliverMultiBoxAdaptorElement,
       radius: radius,
       anchor: anchor,
-      itemExtent: itemExtent,
+      childSize: childSize,
       maxVisibleItems: maxVisibleItems,
       rotateChildren: rotateChildren,
       angularPadding: angularPadding,
@@ -84,7 +84,7 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
     renderObject
       ..radius = radius
       ..anchor = anchor
-      ..itemExtent = itemExtent
+      ..childSize = childSize
       ..maxVisibleItems = maxVisibleItems
       ..rotateChildren = rotateChildren
       ..angularPadding = angularPadding;
@@ -105,13 +105,13 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     required super.childManager,
     required double radius,
     required RadialMenuAnchor anchor,
-    required double? itemExtent,
+    required Size? childSize,
     required int? maxVisibleItems,
     required bool rotateChildren,
     required double angularPadding,
   }) : _radius = radius,
        _anchor = anchor,
-       _itemExtent = itemExtent,
+       _childSize = childSize,
        _maxVisibleItems = maxVisibleItems,
        _rotateChildren = rotateChildren,
        _angularPadding = angularPadding;
@@ -140,13 +140,13 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     markNeedsLayout();
   }
 
-  double? _itemExtent;
+  Size? _childSize;
 
-  double? get itemExtent => _itemExtent;
+  Size? get childSize => _childSize;
 
-  set itemExtent(double? value) {
-    if (_itemExtent == value) return;
-    _itemExtent = value;
+  set childSize(Size? value) {
+    if (_childSize == value) return;
+    _childSize = value;
     markNeedsLayout();
   }
 
@@ -230,17 +230,21 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     final radialAngle = RadialMenuAnchorWrapper.getAngle(_anchor);
     final visibleAngle = radialAngle.sweepAngle.abs();
 
-    // The angle occupied by the child's visible content only (slot minus padding).
-    // This is what drives the child widget's pixel size so the padding gap remains
-    // as empty space and is actually visible between items.
     late final double anglePerChildContent;
 
-    if (_itemExtent != null) {
-      anglePerChildContent = _linearToRadial(_itemExtent!);
-    } else {
+    // Choose what bounds the layout spacing across the scroll arc.
+    if (_maxVisibleItems != null) {
       // It derives from maxVisibleItems
       final totalPadding = _maxVisibleItems! * angularPadding;
       anglePerChildContent = (visibleAngle - totalPadding) / _maxVisibleItems!;
+    } else {
+      late final double angularDimensionLimit;
+      if (constraints.axis == Axis.vertical) {
+        angularDimensionLimit = _childSize!.height;
+      } else {
+        angularDimensionLimit = _childSize!.width;
+      }
+      anglePerChildContent = _linearToRadial(angularDimensionLimit);
     }
 
     final angleArcPerChild = anglePerChildContent + angularPadding;
@@ -252,12 +256,12 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     );
 
     // ── Step 3: Child size ──────────────────────────────────────────────────
-    final childDimension = _radialToLinear(
-      anglePerChildContent,
-    ).clamp(0.0, double.maxFinite);
-    assert(childDimension > 0, 'childDimension must be positive');
     final childConstraints = BoxConstraints.tight(
-      Size(childDimension, childDimension),
+      _childSize ??
+          Size(
+            _radialToLinear(anglePerChildContent).clamp(0.0, double.maxFinite),
+            _radialToLinear(anglePerChildContent).clamp(0.0, double.maxFinite),
+          ),
     );
 
     // ── Step 4: Determine visible range ────────────────────────────────────
@@ -525,22 +529,22 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
         // Retrieve the angle computed during performLayout().
         final angle = childParentData.angle;
 
-        // Half the child's side length – used to center the widget on the
-        // circumference instead of placing its top-left corner there.
-        final childSize = child.size.width / 2;
+        // Uses either explicitly sized center mapping from native layout size, natively falling back mathematically.
+        final offsetX = child.size.width / 2;
+        final offsetY = child.size.height / 2;
 
         // Polar → Cartesian conversion:
         //   x = cx + r·cos(θ)
         //   y = cy + r·sin(θ)
-        // Subtract childSize so the widget CENTER sits on the circumference.
-        final dx = center.dx + (_radius * cos(angle)) - childSize;
-        final dy = center.dy + (_radius * sin(angle)) - childSize;
+        // Subtract half layout constraint width/height so center sits onto exact curve anchor point natively.
+        final dx = center.dx + (_radius * cos(angle)) - offsetX;
+        final dy = center.dy + (_radius * sin(angle)) - offsetY;
 
         if (rotateChildren) {
           final transform = Matrix4.identity()
-            ..translateByVector3(Vector3(dx + childSize, dy + childSize, 0))
+            ..translateByVector3(Vector3(dx + offsetX, dy + offsetY, 0))
             ..rotateZ(angle)
-            ..translateByVector3(Vector3(-childSize, -childSize, 0));
+            ..translateByVector3(Vector3(-offsetX, -offsetY, 0));
 
           context.pushTransform(needsCompositing, offset, transform, (
             context,
