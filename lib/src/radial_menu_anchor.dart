@@ -21,23 +21,28 @@ class RadialMenuAnchorWrapper {
   static const double _threeQuarterPi = _pi + _halfPi; // 270 deg
   static const double _full = 2 * _pi; //360 deg
 
+  static const double _minusHalfPi = -_halfPi;
+
   static final _anchorToAngle = {
     RadialMenuAnchor.topLeft: RadialAngle(startAngle: _zero, endAngle: _halfPi),
     RadialMenuAnchor.topCenter: RadialAngle(
-      startAngle: _zero,
-      endAngle: _pi,
+      startAngle: _pi,
+      endAngle: _zero,
       orientation: RadialSweepOrientation.horizontal,
     ),
-    RadialMenuAnchor.topRight: RadialAngle(startAngle: _halfPi, endAngle: _pi),
+    RadialMenuAnchor.topRight: RadialAngle(startAngle: _pi, endAngle: _halfPi),
     RadialMenuAnchor.centerLeft: RadialAngle(
-      startAngle: _threeQuarterPi,
+      startAngle: _minusHalfPi,
       endAngle: _halfPi,
       orientation: RadialSweepOrientation.vertical,
     ),
-    RadialMenuAnchor.center: RadialAngle(startAngle: _zero, endAngle: _full),
-    RadialMenuAnchor.centerRight: RadialAngle(
-      startAngle: _halfPi,
+    RadialMenuAnchor.center: RadialAngle(
+      startAngle: _minusHalfPi,
       endAngle: _threeQuarterPi,
+    ),
+    RadialMenuAnchor.centerRight: RadialAngle(
+      startAngle: _threeQuarterPi,
+      endAngle: _halfPi,
       orientation: RadialSweepOrientation.vertical,
     ),
     RadialMenuAnchor.bottomLeft: RadialAngle(
@@ -50,8 +55,8 @@ class RadialMenuAnchorWrapper {
       orientation: RadialSweepOrientation.horizontal,
     ),
     RadialMenuAnchor.bottomRight: RadialAngle(
-      startAngle: _pi,
-      endAngle: _threeQuarterPi,
+      startAngle: _threeQuarterPi,
+      endAngle: _pi,
     ),
   };
 
@@ -86,7 +91,9 @@ class RadialAngle {
   final double endAngle;
   final RadialSweepOrientation? orientation;
 
-  double get visibleArcAngle => (endAngle - startAngle).abs();
+  double get visibleArcAngle => sweepAngle.abs();
+
+  double get sweepAngle => endAngle - startAngle;
 
   @override
   String toString() {

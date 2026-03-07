@@ -52,12 +52,10 @@ class RadialView extends StatelessWidget {
   }
 
   Axis _getScrollDirection() {
-    if (_radialAngle.orientation
-        case == null || RadialSweepOrientation.vertical) {
-      return Axis.vertical;
-    } else {
-      return Axis.horizontal;
-    }
+    return switch (_radialAngle.orientation) {
+      RadialSweepOrientation.vertical || null => Axis.vertical,
+      RadialSweepOrientation.horizontal => Axis.horizontal,
+    };
   }
 
   @override

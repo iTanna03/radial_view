@@ -13,16 +13,16 @@ class MyApp extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text('Radial View')),
       body: RadialView(
-        anchor: RadialMenuAnchor.centerLeft,
+        anchor: RadialMenuAnchor.center,
         radius: 200,
-        angularPadding: 1,
+        angularPadding: 0,
         delegate: SliverChildBuilderDelegate(
           (context, index) => CircleAvatar(
             radius: 10,
             backgroundColor: Colors.primaries[index % Colors.primaries.length],
             child: Center(child: Text('$index')),
           ),
-          childCount: 200,
+          childCount: 20,
         ),
         visibleItemCount: 10,
       ),

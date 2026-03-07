@@ -392,21 +392,15 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
         nextChild = childAfter(currentChild);
       }
 
-      // Compute the angle at which this child's CENTER should be placed.
-      //
-      //   radialAngle.startAngle  – the arc's leading edge in absolute radians
-      //   angularOffset           – how much the list has been rotated (scroll)
-      //   angleArcPerChild*index  – position of the item's leading edge on arc
-      //     (this uses the FULL slot width, so padding shifts centres apart)
-      //   angleArcPerChild/2      – shift from leading edge to item centre
-      //
-      // The result is an angle relative to the anchor centre, positive x-axis.
+      // compute directional multiplier based on sweepAngle
+      final sign = radialAngle.sweepAngle < 0 ? -1.0 : 1.0;
       final parentData = currentChild.parentData as SliverRadialParentData;
       final childAngle =
-          radialAngle.startAngle -
-          angularOffset +
-          (angleArcPerChild * index) +
-          (angleArcPerChild / 2);
+          radialAngle.startAngle +
+          sign *
+              ((angleArcPerChild * index) +
+                  (angleArcPerChild / 2) -
+                  angularOffset);
 
       // Store the angle so paint() can retrieve it without re-computing.
       parentData.angle = childAngle;
