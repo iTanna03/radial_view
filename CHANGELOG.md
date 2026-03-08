@@ -1,17 +1,16 @@
-## 0.1.0+1
+# 0.1.1
 
-Initial release of `radial_view`
+- Dropped the unnecessary build number from the initial release.
 
-## Features
+## 0.1.0
 
-- **Flexible Constructors:** Create a radial view using a static list of `children` or dynamically
-  with `.builder` for an infinite or large number of items.
-- **Customizable Anchors:** Anchor the radial menu to various positions on the screen (e.g., center,
-  top left, bottom right) using `RadialMenuAnchor`.
-- **Adjustable Radius & Padding:** Control the radius of the layout and the angular padding between
-  items.
-- **Radial Extent:** Define the radial thickness (width) of each child.
-- **Child Rotation:** Automatically rotate children so they face outwards from the center (
-  `rotateChildren`).
-- **Scrollable:** Built on top of `CustomScrollView` and slivers, allowing natural scroll
-  interactions.
+Initial release of `radial_view`.
+
+### Features
+
+- Introduces `RadialView`, a widget that arranges children in a customizable radial (circular)
+  layout.
+- Supports positioning widgets around a configurable anchor point.
+- Provides smooth scrolling through items using `CustomScrollView`.
+- Includes `SliverRadialList` for efficient sliver-based radial layouts.
+- Designed to integrate seamlessly with existing Flutter scrollable widgets.
