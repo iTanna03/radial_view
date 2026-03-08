@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Radial View')),
       body: RadialView.builder(
-        anchor: RadialMenuAnchor.bottomCenter,
+        anchor: RadialMenuAnchor.topCenter,
         radius: radius,
         radialExtent: 90,
         angularPadding: 2,
