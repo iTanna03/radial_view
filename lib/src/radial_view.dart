@@ -73,6 +73,12 @@ class RadialView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveMaxVisibleItems = switch (anchor) {
+      RadialMenuAnchor.center =>
+        delegate.estimatedChildCount ?? maxVisibleItems,
+      _ => maxVisibleItems,
+    };
+
     return CustomScrollView(
       controller: controller,
       scrollDirection: _getScrollDirection(),
@@ -81,7 +87,7 @@ class RadialView extends StatelessWidget {
           delegate: delegate,
           radius: radius,
           anchor: anchor,
-          maxVisibleItems: maxVisibleItems,
+          maxVisibleItems: effectiveMaxVisibleItems,
           radialExtent: radialExtent,
           rotateChildren: rotateChildren,
           angularPadding: angularPadding.toRadians,

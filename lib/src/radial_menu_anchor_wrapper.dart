@@ -12,8 +12,6 @@ class RadialMenuAnchorWrapper {
   static const double _threeQuarterPi = _pi + _halfPi; // 270 deg
   static const double _full = 2 * _pi; //360 deg
 
-  static const double _minusHalfPi = -_halfPi;
-
   static final Map<RadialMenuAnchor, RadialAngle> _anchorToAngle = {
     RadialMenuAnchor.topLeft: RadialAngle(startAngle: _zero, endAngle: _halfPi),
     RadialMenuAnchor.topCenter: RadialAngle(
@@ -23,14 +21,14 @@ class RadialMenuAnchorWrapper {
     ),
     RadialMenuAnchor.topRight: RadialAngle(startAngle: _pi, endAngle: _halfPi),
     RadialMenuAnchor.centerLeft: RadialAngle(
-      startAngle: _minusHalfPi,
+      startAngle: -_halfPi,
       endAngle: _halfPi,
       orientation: RadialSweepOrientation.vertical,
     ),
-    // RadialMenuAnchor.center: RadialAngle(
-    //   startAngle: _minusHalfPi,
-    //   endAngle: _threeQuarterPi,
-    // ),
+    RadialMenuAnchor.center: RadialAngle(
+      startAngle: -_halfPi,
+      endAngle: _threeQuarterPi,
+    ),
     RadialMenuAnchor.centerRight: RadialAngle(
       startAngle: _threeQuarterPi,
       endAngle: _halfPi,
@@ -58,7 +56,7 @@ class RadialMenuAnchorWrapper {
       RadialMenuAnchor.topCenter => Alignment.topCenter,
       RadialMenuAnchor.topRight => Alignment.topRight,
       RadialMenuAnchor.centerLeft => Alignment.centerLeft,
-      //RadialMenuAnchor.center => Alignment.center,
+      RadialMenuAnchor.center => Alignment.center,
       RadialMenuAnchor.centerRight => Alignment.centerRight,
       RadialMenuAnchor.bottomLeft => Alignment.bottomLeft,
       RadialMenuAnchor.bottomCenter => Alignment.bottomCenter,

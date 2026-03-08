@@ -13,19 +13,18 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const double radius = 180;
+    final colors = Colors.primaries;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Radial View')),
       body: RadialView.builder(
-        anchor: RadialMenuAnchor.topCenter,
+        anchor: RadialMenuAnchor.bottomCenter,
         radius: radius,
-        radialExtent: 90,
         angularPadding: 2,
-        itemCount: 100,
-        maxVisibleItems: 3,
+        radialExtent: 60,
+        itemCount: 50,
+        maxVisibleItems: 5,
         itemBuilder: (context, index) {
-          final colors = Colors.primaries;
-
           return CustomPaint(
             painter: SectorPainter(
               radius: radius,

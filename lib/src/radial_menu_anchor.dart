@@ -12,7 +12,8 @@ enum RadialMenuAnchor {
   /// Center left.
   centerLeft,
 
-  //center,
+  /// Center
+  center,
 
   /// Center right.
   centerRight,
