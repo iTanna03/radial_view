@@ -14,16 +14,12 @@ class RadialView extends StatelessWidget {
     required this.anchor,
     required this.radius,
     required List<Widget> children,
-    this.childSize,
-    this.maxVisibleItems,
+    required this.maxVisibleItems,
+    this.radialExtent,
     this.rotateChildren = true,
     this.angularPadding = 0.0,
     super.key,
-  }) : assert(
-         (childSize == null) != (maxVisibleItems == null),
-         'Either childSize or maxVisibleItems must be provided, but not both.',
-       ),
-       delegate = SliverChildListDelegate(children),
+  }) : delegate = SliverChildListDelegate(children),
        _radialAngle = RadialMenuAnchorWrapper.getAngle(anchor);
 
   /// Creates a [RadialView] whose children are built on demand.
@@ -32,16 +28,12 @@ class RadialView extends StatelessWidget {
     required this.radius,
     required IndexedWidgetBuilder itemBuilder,
     required int itemCount,
-    this.childSize,
-    this.maxVisibleItems,
+    required this.maxVisibleItems,
+    this.radialExtent,
     this.rotateChildren = true,
     this.angularPadding = 0.0,
     super.key,
-  }) : assert(
-         (childSize == null) != (maxVisibleItems == null),
-         'Either childSize or maxVisibleItems must be provided, but not both.',
-       ),
-       delegate = SliverChildBuilderDelegate(
+  }) : delegate = SliverChildBuilderDelegate(
          itemBuilder,
          childCount: itemCount,
        ),
@@ -56,11 +48,11 @@ class RadialView extends StatelessWidget {
   /// A delegate that provides the children for the [RadialView].
   final SliverChildDelegate delegate;
 
-  /// The 2D bounds each child strictly occupies
-  final Size? childSize;
+  /// The maximum number of items visible along the given sweep angle.
+  final int maxVisibleItems;
 
-  /// The maximum number of items visible along the given sweep angle
-  final int? maxVisibleItems;
+  /// The radial thickness (width) of each child. If null, defaults to [radius].
+  final double? radialExtent;
 
   /// Whether children should rotate outwards from center
   final bool rotateChildren;
@@ -72,12 +64,12 @@ class RadialView extends StatelessWidget {
   Size _getBoundingBoxSize() {
     final angle = _radialAngle.sweepAngle.abs();
 
-    late final double largestChildSpan;
-    if (childSize != null) {
-      largestChildSpan = max(childSize!.width, childSize!.height);
-    } else {
-      largestChildSpan = radius * (angle / maxVisibleItems!);
-    }
+    final totalPadding = maxVisibleItems * angularPadding;
+    final anglePerChildContent = (angle - totalPadding) / maxVisibleItems;
+    final chordLength = (2 * radius * sin(anglePerChildContent / 2)).abs();
+
+    final maxThickness = (radialExtent ?? radius).clamp(0.0, radius);
+    final largestChildSpan = max(maxThickness, chordLength);
 
     final viewRadius = radius + largestChildSpan / 2;
 
@@ -125,8 +117,8 @@ class RadialView extends StatelessWidget {
                 delegate: delegate,
                 radius: radius,
                 anchor: anchor,
-                childSize: childSize,
                 maxVisibleItems: maxVisibleItems,
+                radialExtent: radialExtent,
                 rotateChildren: rotateChildren,
                 angularPadding: angularPadding.toRadians,
               ),

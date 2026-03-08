@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:radial_view/src/radial_menu_anchor.dart';
 import 'package:radial_view/src/radial_menu_anchor_wrapper.dart';
-import 'package:vector_math/vector_math_64.dart';
+import 'package:vector_math/vector_math_64.dart' hide Colors;
 
 // This file implements a custom Sliver that renders its children positioned
 // along the circumference of a circle instead of in a straight line.
@@ -42,15 +42,12 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
     required super.delegate,
     required this.radius,
     required this.anchor,
+    required this.maxVisibleItems,
     super.key,
-    this.childSize,
-    this.maxVisibleItems,
+    this.radialExtent,
     this.rotateChildren = true,
     this.angularPadding = 0.0,
-  }) : assert(
-         childSize != null || maxVisibleItems != null,
-         'At least one of childSize or maxVisibleItems must be provided.',
-       );
+  });
 
   /// The radius of the radial list.
   final double radius;
@@ -58,11 +55,11 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
   /// The anchor point for the radial menu.
   final RadialMenuAnchor anchor;
 
-  /// The size of each child.
-  final Size? childSize;
-
   /// The maximum number of items visible along the given sweep angle.
-  final int? maxVisibleItems;
+  final int maxVisibleItems;
+
+  /// The radial thickness (width) of each child.
+  final double? radialExtent;
 
   /// Whether children should rotate outwards from center.
   final bool rotateChildren;
@@ -80,8 +77,8 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
       childManager: context as SliverMultiBoxAdaptorElement,
       radius: radius,
       anchor: anchor,
-      childSize: childSize,
       maxVisibleItems: maxVisibleItems,
+      radialExtent: radialExtent,
       rotateChildren: rotateChildren,
       angularPadding: angularPadding,
     );
@@ -95,8 +92,8 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
     renderObject
       ..radius = radius
       ..anchor = anchor
-      ..childSize = childSize
       ..maxVisibleItems = maxVisibleItems
+      ..radialExtent = radialExtent
       ..rotateChildren = rotateChildren
       ..angularPadding = angularPadding;
   }
@@ -118,14 +115,14 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     required super.childManager,
     required double radius,
     required RadialMenuAnchor anchor,
-    required Size? childSize,
-    required int? maxVisibleItems,
+    required int maxVisibleItems,
+    required double? radialExtent,
     required bool rotateChildren,
     required double angularPadding,
   }) : _radius = radius,
        _anchor = anchor,
-       _childSize = childSize,
        _maxVisibleItems = maxVisibleItems,
+       _radialExtent = radialExtent,
        _rotateChildren = rotateChildren,
        _angularPadding = angularPadding;
 
@@ -157,27 +154,27 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     markNeedsLayout();
   }
 
-  Size? _childSize;
+  int _maxVisibleItems;
 
-  /// The size of each child.
-  Size? get childSize => _childSize;
+  /// The maximum number of items visible along the given sweep angle.
+  int get maxVisibleItems => _maxVisibleItems;
 
-  /// Sets the size of each child.
-  set childSize(Size? value) {
-    if (_childSize == value) return;
-    _childSize = value;
+  /// Sets the maximum number of items visible along the given sweep angle.
+  set maxVisibleItems(int value) {
+    if (_maxVisibleItems == value) return;
+    _maxVisibleItems = value;
     markNeedsLayout();
   }
 
-  int? _maxVisibleItems;
+  double? _radialExtent;
 
-  /// The maximum number of items visible along the given sweep angle.
-  int? get maxVisibleItems => _maxVisibleItems;
+  /// The radial thickness (width) of each child.
+  double? get radialExtent => _radialExtent;
 
-  /// Sets the maximum number of items visible along the given sweep angle.
-  set maxVisibleItems(int? value) {
-    if (_maxVisibleItems == value) return;
-    _maxVisibleItems = value;
+  /// Sets the radial thickness (width) of each child.
+  set radialExtent(double? value) {
+    if (_radialExtent == value) return;
+    _radialExtent = value;
     markNeedsLayout();
   }
 
@@ -256,39 +253,40 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     final radialAngle = RadialMenuAnchorWrapper.getAngle(_anchor);
     final visibleAngle = radialAngle.sweepAngle.abs();
 
-    late final double anglePerChildContent;
-
     // Choose what bounds the layout spacing across the scroll arc.
-    if (_maxVisibleItems != null) {
-      // It derives from maxVisibleItems
-      final totalPadding = _maxVisibleItems! * angularPadding;
-      anglePerChildContent = (visibleAngle - totalPadding) / _maxVisibleItems!;
-    } else {
-      late final double angularDimensionLimit;
-      if (constraints.axis == Axis.vertical) {
-        angularDimensionLimit = _childSize!.height;
-      } else {
-        angularDimensionLimit = _childSize!.width;
-      }
-      anglePerChildContent = _linearToRadial(angularDimensionLimit);
-    }
+    final totalPadding = _maxVisibleItems * angularPadding;
+    final anglePerChildContent =
+        (visibleAngle - totalPadding) / _maxVisibleItems;
 
     final angleArcPerChild = anglePerChildContent + angularPadding;
 
     // ── Step 2: Scroll extents ──────────────────────────────────────────────
     final scrollableAngle = angleArcPerChild * length;
     final maxScrollExtent = _radialToLinear(
-      (scrollableAngle - visibleAngle).clamp(0.0, double.infinity),
+      max(0, scrollableAngle - visibleAngle),
     );
 
     // ── Step 3: Child size ──────────────────────────────────────────────────
-    final childConstraints = BoxConstraints.tight(
-      _childSize ??
-          Size(
-            _radialToLinear(anglePerChildContent).clamp(0.0, double.maxFinite),
-            _radialToLinear(anglePerChildContent).clamp(0.0, double.maxFinite),
-          ),
-    );
+    // Use the chord length to determine the exact max dimension along the arc.
+    // Chord formula: 2 * R * sin(theta / 2)
+    final chordLength = (2 * _radius * sin(anglePerChildContent / 2)).abs();
+    final maxThickness = (_radialExtent ?? _radius).clamp(0.0, _radius);
+
+    late final BoxConstraints childConstraints;
+    if (_rotateChildren) {
+      // When rotated, the child's Y-axis is tangent to the circle (along the chord),
+      // and its X-axis points radially outward.
+      childConstraints = BoxConstraints(
+        minWidth: maxThickness,
+        maxWidth: maxThickness,
+        minHeight: chordLength,
+        maxHeight: chordLength,
+      );
+    } else {
+      // When not rotated, we provide a square box bounded by the chord length.
+      final double unrotatedDim = min(chordLength, maxThickness);
+      childConstraints = BoxConstraints.tight(Size(unrotatedDim, unrotatedDim));
+    }
 
     // ── Step 4: Determine visible range ────────────────────────────────────
     //
@@ -532,21 +530,23 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     // ── Debug helpers (uncomment to visualise the layout) ──────────────────
     // Draw the bounding rect of this sliver:
     // context.canvas.drawRect(
-    //     rect,
-    //     Paint()
-    //       ..style = PaintingStyle.stroke
-    //       ..color = Colors.red);
+    //   rect,
+    //   Paint()
+    //     ..style = PaintingStyle.stroke
+    //     ..color = Colors.red,
+    // );
     //
-    // Draw the arc that children are positioned along:
+    // //Draw the arc that children are positioned along:
+    // final radialAngle = RadialMenuAnchorWrapper.getAngle(_anchor);
     // context.canvas.drawArc(
-    //     Rect.fromCenter(
-    //         center: center, width: _radius * 2, height: _radius * 2),
-    //     radialAngle.startAngle,
-    //     radialAngle.visibleArcAngle,
-    //     false,
-    //     Paint()
-    //       ..style = PaintingStyle.stroke
-    //       ..color = Colors.black);
+    //   Rect.fromCenter(center: center, width: _radius * 2, height: _radius * 2),
+    //   radialAngle.startAngle,
+    //   radialAngle.visibleArcAngle,
+    //   false,
+    //   Paint()
+    //     ..style = PaintingStyle.stroke
+    //     ..color = Colors.black,
+    // );
 
     context.pushClipRect(needsCompositing, offset, rect, (context, offset) {
       var child = firstChild;
