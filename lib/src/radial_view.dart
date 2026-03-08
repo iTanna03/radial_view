@@ -2,10 +2,14 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:radial_view/src/extensions.dart';
+import 'package:radial_view/src/radial_angle.dart';
 import 'package:radial_view/src/radial_menu_anchor.dart';
+import 'package:radial_view/src/radial_menu_anchor_wrapper.dart';
 import 'package:radial_view/src/sliver_radial_list.dart';
 
+/// A widget that displays its children in a radial layout.
 class RadialView extends StatelessWidget {
+  /// Creates a [RadialView] with a predetermined list of static children.
   RadialView({
     required this.anchor,
     required this.radius,
@@ -22,6 +26,7 @@ class RadialView extends StatelessWidget {
        delegate = SliverChildListDelegate(children),
        _radialAngle = RadialMenuAnchorWrapper.getAngle(anchor);
 
+  /// Creates a [RadialView] whose children are built on demand.
   RadialView.builder({
     required this.anchor,
     required this.radius,
@@ -42,8 +47,13 @@ class RadialView extends StatelessWidget {
        ),
        _radialAngle = RadialMenuAnchorWrapper.getAngle(anchor);
 
+  /// The anchor point for the radial menu.
   final RadialMenuAnchor anchor;
+
+  /// The radius of the radial menu.
   final double radius;
+
+  /// A delegate that provides the children for the [RadialView].
   final SliverChildDelegate delegate;
 
   /// The 2D bounds each child strictly occupies
@@ -66,10 +76,10 @@ class RadialView extends StatelessWidget {
     if (childSize != null) {
       largestChildSpan = max(childSize!.width, childSize!.height);
     } else {
-      largestChildSpan = this.radius * (angle / maxVisibleItems!);
+      largestChildSpan = radius * (angle / maxVisibleItems!);
     }
 
-    final viewRadius = this.radius + largestChildSpan / 2;
+    final viewRadius = radius + largestChildSpan / 2;
 
     if (angle == pi / 2) {
       return Size(viewRadius, viewRadius);

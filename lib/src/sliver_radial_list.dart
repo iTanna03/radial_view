@@ -3,11 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:radial_view/src/radial_menu_anchor.dart';
+import 'package:radial_view/src/radial_menu_anchor_wrapper.dart';
 import 'package:vector_math/vector_math_64.dart';
 
-// ---------------------------------------------------------------------------
-// MENTAL MODEL
-// ---------------------------------------------------------------------------
 // This file implements a custom Sliver that renders its children positioned
 // along the circumference of a circle instead of in a straight line.
 //
@@ -37,12 +35,14 @@ import 'package:vector_math/vector_math_64.dart';
 // Use this inside a [CustomScrollView] exactly like [SliverList] or
 // [SliverGrid]. It is a thin configuration object; all real work happens in
 // the [RenderSliverRadial] render object created below.
+/// A sliver that places multiple box children in a radial layout.
 class SliverRadialList extends SliverMultiBoxAdaptorWidget {
+  /// Creates a [SliverRadialList].
   const SliverRadialList({
-    super.key,
     required super.delegate,
     required this.radius,
     required this.anchor,
+    super.key,
     this.childSize,
     this.maxVisibleItems,
     this.rotateChildren = true,
@@ -52,11 +52,22 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
          'At least one of childSize or maxVisibleItems must be provided.',
        );
 
+  /// The radius of the radial list.
   final double radius;
+
+  /// The anchor point for the radial menu.
   final RadialMenuAnchor anchor;
+
+  /// The size of each child.
   final Size? childSize;
+
+  /// The maximum number of items visible along the given sweep angle.
   final int? maxVisibleItems;
+
+  /// Whether children should rotate outwards from center.
   final bool rotateChildren;
+
+  /// The angle in radians to pad each item.
   final double angularPadding;
 
   @override
@@ -100,7 +111,9 @@ class SliverRadialList extends SliverMultiBoxAdaptorWidget {
 //   • Helper methods: addInitialChild, insertAndLayoutChild,
 //     insertAndLayoutLeadingChild, collectGarbage, indexOf, etc.
 //   • The linked-list of live children (firstChild, childAfter, …).
+/// A render object that lays out its children in a radial layout.
 class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
+  /// Creates a [RenderSliverRadial].
   RenderSliverRadial({
     required super.childManager,
     required double radius,
@@ -118,8 +131,10 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
 
   double _radius;
 
+  /// The radius of the radial list.
   double get radius => _radius;
 
+  /// Sets the radius of the radial list.
   set radius(double value) {
     if (radius == value) return;
     _radius = value;
@@ -132,8 +147,10 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
   // subset.
   RadialMenuAnchor _anchor;
 
+  /// The anchor point for the radial menu.
   RadialMenuAnchor get anchor => _anchor;
 
+  /// Sets the anchor point for the radial menu.
   set anchor(RadialMenuAnchor value) {
     if (anchor == value) return;
     _anchor = value;
@@ -142,8 +159,10 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
 
   Size? _childSize;
 
+  /// The size of each child.
   Size? get childSize => _childSize;
 
+  /// Sets the size of each child.
   set childSize(Size? value) {
     if (_childSize == value) return;
     _childSize = value;
@@ -152,8 +171,10 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
 
   int? _maxVisibleItems;
 
+  /// The maximum number of items visible along the given sweep angle.
   int? get maxVisibleItems => _maxVisibleItems;
 
+  /// Sets the maximum number of items visible along the given sweep angle.
   set maxVisibleItems(int? value) {
     if (_maxVisibleItems == value) return;
     _maxVisibleItems = value;
@@ -162,8 +183,10 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
 
   bool _rotateChildren;
 
+  /// Whether children should rotate outwards from center.
   bool get rotateChildren => _rotateChildren;
 
+  /// Sets whether children should rotate outwards from center.
   set rotateChildren(bool value) {
     if (_rotateChildren == value) return;
     _rotateChildren = value;
@@ -175,8 +198,10 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
   // itemExtent padding on a regular SliverList, but in the angular domain.
   double _angularPadding;
 
+  /// The angle in radians to pad each item.
   double get angularPadding => _angularPadding;
 
+  /// Sets the angle in radians to pad each item.
   set angularPadding(double value) {
     if (angularPadding == value) return;
     _angularPadding = value;
@@ -214,8 +239,9 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
   //   4. Report a SliverGeometry back to the viewport.
   @override
   void performLayout() {
-    childManager.didStartLayout();
-    childManager.setDidUnderflow(false);
+    childManager
+      ..didStartLayout()
+      ..setDidUnderflow(false);
 
     // Total number of items provided by the delegate.
     final length = childManager.childCount;
@@ -250,7 +276,7 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     final angleArcPerChild = anglePerChildContent + angularPadding;
 
     // ── Step 2: Scroll extents ──────────────────────────────────────────────
-    final scrollableAngle = (angleArcPerChild * length);
+    final scrollableAngle = angleArcPerChild * length;
     final maxScrollExtent = _radialToLinear(
       (scrollableAngle - visibleAngle).clamp(0.0, double.infinity),
     );
@@ -302,8 +328,8 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     // Walk forward through the existing child list. Any child whose index is
     // less than startIndex has scrolled out of view from the leading edge and
     // can be destroyed to free memory.
-    RenderBox? child = firstChild;
-    int leadingGarbageChild = 0;
+    var child = firstChild;
+    var leadingGarbageChild = 0;
 
     while (child != null && indexOf(child) < startIndex) {
       leadingGarbageChild += 1;
@@ -335,7 +361,7 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
         return;
       }
     }
-    assert(indexOf(child) == startIndex);
+    assert(indexOf(child) == startIndex, 'indexOf(child) != startIndex');
 
     // ── Step 7: Layout visible children & assign angles ────────────────────
     //
@@ -343,11 +369,12 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     // edge of the last item passes endAngularOffset or we run out of items.
     // Use a cleaner two-pointer loop:
     //   currentChild → the child being positioned this iteration.
-    //   nextChild    → the already-existing sibling after currentChild (may be null).
-    RenderBox currentChild = child;
-    RenderBox? nextChild = childAfter(currentChild);
-    double angle = angularOffset;
-    int index = startIndex;
+    //   nextChild    → the already-existing sibling after currentChild
+    //   (may be null).
+    var currentChild = child;
+    var nextChild = childAfter(currentChild);
+    var angle = angularOffset;
+    var index = startIndex;
 
     while (angle - (angleArcPerChild / 2) < endAngularOffset &&
         index < length) {
@@ -362,8 +389,8 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
         if (nextChild != null) {
           // Child already exists from a previous layout pass – re-layout it
           // so any constraint change (e.g. new angularPadding) is applied.
-          currentChild = nextChild;
-          currentChild.layout(childConstraints, parentUsesSize: true);
+          currentChild = nextChild
+            ..layout(childConstraints, parentUsesSize: true);
         } else {
           // No more existing children; append a new one after currentChild.
           final inserted = insertAndLayoutChild(
@@ -383,7 +410,7 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
 
       // compute directional multiplier based on sweepAngle
       final sign = radialAngle.sweepAngle < 0 ? -1.0 : 1.0;
-      final parentData = currentChild.parentData as SliverRadialParentData;
+      final parentData = currentChild.parentData! as SliverRadialParentData;
       final childAngle =
           radialAngle.startAngle +
           sign *
@@ -392,12 +419,12 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
                   angularOffset);
 
       // Store the angle so paint() can retrieve it without re-computing.
-      parentData.angle = childAngle;
-
-      // layoutOffset is required by SliverMultiBoxAdaptorParentData to track
-      // each child's position in scroll space (in radians here, not pixels,
-      // because paint overrides the pixel-based drawing entirely).
-      parentData.layoutOffset = childAngle;
+      parentData
+        ..angle = childAngle
+        // layoutOffset is required by SliverMultiBoxAdaptorParentData to track
+        // each child's position in scroll space (in radians here, not pixels,
+        // because paint overrides the pixel-based drawing entirely).
+        ..layoutOffset = childAngle;
 
       // Advance the angle tracker by the FULL slot (content + padding).
       // Using paintExtentOf(currentChild) here would only advance by the
@@ -411,9 +438,9 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     //
     // Any children that were laid out in a previous frame but are now beyond
     // the visible window (trailing edge) should be destroyed.
-    int trailingGarbageChild = 0;
+    var trailingGarbageChild = 0;
 
-    RenderBox? trailingChild = childAfter(currentChild);
+    var trailingChild = childAfter(currentChild);
     while (trailingChild != null) {
       trailingGarbageChild += 1;
       trailingChild = childAfter(trailingChild);
@@ -425,12 +452,12 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     // The sliver itself is functionally a fixed-size block that spins
     // internally when scrolled. So we give it a fixed physical "footprint"
     // on the screen equal to the viewport's height (or crossAxisExtent).
-    final double physicalSize = constraints.viewportMainAxisExtent;
+    final physicalSize = constraints.viewportMainAxisExtent;
 
     // The amount of extra internal "travel" the wheel needs to show the
     // last item. We calculated this earlier as `maxScrollExtent`.
     // e.g. if the user needs to scroll 200 pixels to reach the end.
-    final double internalScroll = maxScrollExtent;
+    final internalScroll = maxScrollExtent;
 
     // The total length of this sliver in scroll space is its physical footprint
     // PLUS the internal scroll travel.
@@ -440,16 +467,18 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     //   ViewportMaxScroll = (physicalSize + internalScroll) - physicalSize
     //   ViewportMaxScroll = internalScroll
     // This gives exactly the correct number of scrollable pixels!
-    final double totalScrollExtent = physicalSize + internalScroll;
+    final totalScrollExtent = physicalSize + internalScroll;
 
     // Calculate how much of the sliver's physical footprint is still
     // overlapping the current viewport. (e.g. if we scroll past internalScroll,
     // the sliver itself starts moving off-screen).
-    final double layoutExtent = (totalScrollExtent - constraints.scrollOffset)
-        .clamp(0.0, double.infinity);
+    final layoutExtent = (totalScrollExtent - constraints.scrollOffset).clamp(
+      0.0,
+      double.infinity,
+    );
 
     // The actual painted pixels, clamped to what space is remaining on screen.
-    final double paintExtent = layoutExtent.clamp(
+    final paintExtent = layoutExtent.clamp(
       0.0,
       constraints.remainingPaintExtent,
     );
@@ -520,11 +549,11 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
     //       ..color = Colors.black);
 
     context.pushClipRect(needsCompositing, offset, rect, (context, offset) {
-      RenderBox? child = firstChild;
+      var child = firstChild;
       if (child == null) return;
 
       while (child != null) {
-        final childParentData = child.parentData as SliverRadialParentData;
+        final childParentData = child.parentData! as SliverRadialParentData;
 
         // Retrieve the angle computed during performLayout().
         final angle = childParentData.angle;
@@ -597,8 +626,9 @@ class RenderSliverRadial extends RenderSliverMultiBoxAdaptor {
 // set in performLayout() – it mirrors the angle so the framework can do basic
 // bookkeeping, even though the actual on-screen position is computed from the
 // angle during paint().
+/// Parent data structure used by [RenderSliverRadial].
 class SliverRadialParentData extends SliverMultiBoxAdaptorParentData {
   /// The angle (in radians) at which this child is positioned on the circle.
   /// Measured from the positive x-axis, consistent with [Canvas.drawArc].
-  double angle = 0.0;
+  double angle = 0;
 }

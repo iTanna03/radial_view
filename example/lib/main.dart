@@ -10,12 +10,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final anchor = RadialMenuAnchor.centerLeft;
-
     return Scaffold(
       appBar: AppBar(title: Text('Radial View')),
       body: RadialView.builder(
-        anchor: anchor,
+        anchor: RadialMenuAnchor.centerLeft,
         radius: 180,
         angularPadding: 10,
         maxVisibleItems: 8,
