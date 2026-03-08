@@ -5,6 +5,8 @@ A Flutter package that provides a customizable radial (circular) layout for your
 supports scrolling through them seamlessly using a `CustomScrollView` and a custom
 `SliverRadialList`.
 
+![Radial View Demo](https://github.com/iTanna03/radial_view/tree/master/example/radial_view_example.gif)
+
 ## Features
 
 - **Flexible Constructors:** Create a radial view using a static list of `children` or dynamically
