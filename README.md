@@ -5,7 +5,7 @@ A Flutter package that provides a customizable radial (circular) layout for your
 supports scrolling through them seamlessly using a `CustomScrollView` and a custom
 `SliverRadialList`.
 
-![Radial View Demo](https://github.com/iTanna03/radial_view/blob/master/example/radial_view_example.gif)
+![Radial View Demo](example/radial_view_example.gif)
 
 ## Features
 
@@ -27,7 +27,7 @@ Include the package in your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  radial_view: ^0.0.1
+  radial_view: ^0.1.1
 ```
 
 Then, run `flutter pub get` and import it in your Dart code:
