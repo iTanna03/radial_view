@@ -1,6 +1,6 @@
 name: radial_view
 description: "A Flutter package that provides a customizable radial (circular) layout for your widgets."
-version: 0.1.1
+version: 0.1.2
 homepage: https://github.com/iTanna03/radial_view
 repository: https://github.com/iTanna03/radial_view
 issue_tracker: https://github.com/iTanna03/radial_view/issues

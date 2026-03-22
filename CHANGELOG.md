@@ -1,3 +1,7 @@
+# 0.1.2
+
+- docs: resolve broken asset links and metadata mismatches
+
 # 0.1.1
 
 - Dropped the unnecessary build number from the initial release.

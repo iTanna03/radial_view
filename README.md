@@ -27,7 +27,7 @@ Include the package in your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  radial_view: ^0.1.1
+  radial_view: ^0.1.2
 ```
 
 Then, run `flutter pub get` and import it in your Dart code:
